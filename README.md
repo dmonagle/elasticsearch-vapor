@@ -1,2 +1,2 @@
-# elasticsearch-nio
-A Swift elasticsearch client using SwiftNIO
+# ElasticsearchVapor
+An elasticsearch database implementation for Vapor 3
