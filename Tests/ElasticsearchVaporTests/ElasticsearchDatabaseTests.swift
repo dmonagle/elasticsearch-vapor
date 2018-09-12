@@ -29,7 +29,7 @@ class ElasticsearchDatabaseTests: XCTestCase {
         let elasticsearch = try! database.newConnection(on: group).wait()
         defer { elasticsearch.close() }
         
-        let types : [ESValue] = ["http", "plugins"]
+        let types : [ESValue?] = ["http", "plugins"]
         try! elasticsearch.request(method: .GET, path: ["_nodes", types]).map { response in
             print(response.body.description)
         }.wait()

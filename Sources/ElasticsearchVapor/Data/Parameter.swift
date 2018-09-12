@@ -7,14 +7,17 @@
 
 import Foundation
 
+public protocol ESValue {
+    func esString() throws -> String
+}
+
+public typealias ESDictionary = Dictionary<String, ESValue>
+public typealias ESArray = Array<ESValue?>
+
 public enum ESParameterError : ElasticsearchError {
     case requiredParameterIsEmpty(String)
     case typeMismatch
     case unableToEscapeString(String)
-}
-
-public protocol ESValue {
-    func esString() throws -> String
 }
 
 extension String {
@@ -29,9 +32,6 @@ extension String {
         return try self.trimmingCharacters(in: ESCharacters.PathStripCharacters).elasticsearchEscape()
     }
 }
-
-public typealias ESDictionary = Dictionary<String, ESValue>
-public typealias ESArray = Array<ESValue>
 
 // MARK - Basic Type Conformance
 
@@ -83,9 +83,9 @@ extension Dictionary where Key == String, Value == ESValue {
 
 // MARK: - Array Conformance
 
-extension Array : ESValue where Element == ESValue {
+extension Array : ESValue where Element == ESValue? {
     public func esString() throws -> String {
-        let list : [String] = try self.map { try $0.esString().elasticsearchEscape() }.compactMap { $0 }
+        let list : [String] = try self.compactMap {$0}.map { try $0.esString().elasticsearchEscape() }.compactMap { $0 }
         return
             list
                 .filter { !$0.isEmpty }
@@ -94,11 +94,12 @@ extension Array : ESValue where Element == ESValue {
 
     public func esPathify() throws -> String {
         let list : [String] = try self.map {
-            if let array = $0 as? Array<ESValue> {
+            guard let element = $0 else { return nil }
+            if let array = element as? Array<ESValue?> {
                 return try array.esString()
             }
             else {
-                return try $0.esString().elasticsearchPathify()
+                return try element.esString().elasticsearchPathify()
             }
         }.compactMap { $0 }
         return

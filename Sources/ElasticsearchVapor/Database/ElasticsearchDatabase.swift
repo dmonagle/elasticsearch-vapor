@@ -22,7 +22,8 @@ public final class ElasticsearchDatabase: Database {
         }
         return ElasticsearchClient.connect(
             on: worker,
-            node: node
+            node: node,
+            config: config.clientConfig
         ) { error in
             print("[Elasticsearch] \(error)")
         }
@@ -32,9 +33,16 @@ public final class ElasticsearchDatabase: Database {
     private var clusterManager : ESClusterManager
 }
 
-extension DatabaseIdentifier {
-    /// Default identifier for `RedisClient`.
-    public static var redis: DatabaseIdentifier<ElasticsearchDatabase> {
+extension ElasticsearchDatabase : LogSupporting {
+    public static func enableLogging(_ logger: DatabaseLogger, on conn: ElasticsearchClient) {
+        conn.logger = logger
+    }
+    
+}
+
+public extension DatabaseIdentifier {
+    /// Default identifier for `ElasticsearchDatabase`.
+    public static var elasticsearch: DatabaseIdentifier<ElasticsearchDatabase> {
         return .init("elasticsearch")
     }
 }

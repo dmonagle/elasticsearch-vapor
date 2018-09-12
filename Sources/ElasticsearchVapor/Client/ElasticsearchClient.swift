@@ -20,7 +20,10 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
     
     /// See `Extendable`.
     public var extend: Extend
-    
+
+    /// See `LogSupporting`.
+    public var logger: DatabaseLogger?
+
     /// Currently executing `send(...)` promise.
     private var currentSend: Promise<Void>?
     
@@ -28,6 +31,17 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
     private var config: ElasticsearchClientConfig
     private var httpClient: Future<HTTPClient>!
     
+    /// Connects to an Elasticsearch server using a HTTPClient.
+    public static func connect(
+        on worker: Worker,
+        node: ESNode,
+        config: ElasticsearchClientConfig = ElasticsearchClientConfig(),
+        onError: @escaping (Error) -> Void
+        ) -> Future<ElasticsearchClient> {
+        let client = self.init(eventLoop: worker.eventLoop, node: node, config: config)
+        return Future.map(on: worker, { client })
+    }
+
     /// Creates a new Elasticsearch client on the provided data source and sink.
     init(eventLoop: EventLoop, node: ESNode, config: ElasticsearchClientConfig = ElasticsearchClientConfig()) {
         self.eventLoop = eventLoop
@@ -60,7 +74,7 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
             let pathWithQuery = "\(path)?\(query.queryString())"
             var request = HTTPRequest(method: method, url: pathWithQuery)
             request.headers.add(name: "Content-Type", value: "application/json")
-            
+            self.logger?.record(query: "\(method) \(pathWithQuery)")
             if let body = requestBody {
                 if body.count > 0 {
                     request.body = HTTPBody(string: body)
@@ -69,33 +83,26 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
                     // From https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-body.html
                     // Both HTTP GET and HTTP POST can be used to execute search with body. Since not all clients support GET with body, POST is allowed as well.
                     if (method == .GET) {
-                        print("Changing GET to POST as there is a request body")
                         request.method = .POST
                     }
                     
                     if body.lengthOfBytes(using: .utf8) <= 1024 {
-                        print("Request body:\n\(body)")
-                    }
-                    else {
-                        print("Request body not logged as it is greater that 1024 bytes")
+                        self.logger?.record(query: "Request body:\n\(body)")
                     }
                 }
             }
             return client.send(request)
         }
     }
-}
 
-extension ElasticsearchClient {
-    // Connects to an Elasticsearch server using a HTTPClient.
-    public static func connect(
-        on worker: Worker,
-        node: ESNode,
-        config: ElasticsearchClientConfig = ElasticsearchClientConfig(),
-        onError: @escaping (Error) -> Void
-        ) -> Future<ElasticsearchClient> {
-        let client = self.init(eventLoop: worker.eventLoop, node: node, config: config)
-        return Future.map(on: worker, { client })
+    
+    /// Returns an ESIndexName with the default prefix if it doesn't have one explicitly set
+    ///
+    /// - Parameter indexName: The ESIndexName to be prefixed
+    /// - Returns: An ESIndexName with the prefix set appropriately
+    public func prefix(_ indexName: ESIndexName) -> ESIndexName {
+        if indexName.prefix == nil { return ESIndexName(prefix: self.config.defaultPrefix, indexName.name) }
+        return indexName
     }
 }
 
@@ -123,6 +130,7 @@ public struct ElasticsearchConfig: Codable {
 public struct ElasticsearchClientConfig: Codable {
     public var maxRetries : Int /// If 0, requests will not be retried
     public var requestTimeout : TimeInterval /// Timeout for each HTTPRequest
+    public var defaultPrefix : String? = nil /// The default prefix to add to an indexName
 
     public init(maxRetries : Int = 2, requestTimeout : TimeInterval = 15) {
         self.maxRetries = maxRetries

@@ -39,7 +39,7 @@ class ParameterTest: XCTestCase {
         XCTAssertEqual(try! ["one/", "/", nil, "\n", "//three"].compactMap {$0}.esPathify(), "one/three")
         XCTAssertEqual(try! ["one/", "/", "", "\n", "//three"].esPathify(), "one/three")
 
-        let indexes : [ESValue] = ["one", "two", "three"]
+        let indexes : [ESValue?] = ["one", "two", "three"]
         let path = try! [indexes, "_search"].esPathify()
         XCTAssertEqual(path, "one,two,three/_search")
     }
@@ -48,7 +48,7 @@ class ParameterTest: XCTestCase {
         XCTAssertEqual(try! ["A", "B"].esString(), "A,B")
         XCTAssertEqual(try! ["one", "two^three"].esString(), "one,two%5Ethree")
 
-        let esParam : [ESValue] = ["one", "two^three"]
+        let esParam : [ESValue?] = ["one", "two^three"]
         XCTAssertEqual(try! esParam.esString(), "one,two%5Ethree")
 
     }
