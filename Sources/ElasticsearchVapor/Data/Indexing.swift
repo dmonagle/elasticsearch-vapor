@@ -43,15 +43,12 @@ extension ESIndexName : ExpressibleByStringLiteral {
 }
 
 /// Makes any Codable model indexable by Elasticsearch
-public protocol ESIndexable : Codable  where ModelData : Codable {
-    associatedtype ModelData
+public protocol ESIndexable : Encodable {
     static var esIndex : ESIndexName { get }
     static var esType : String { get }
 
     var esId: String? { get }
     var esParentId: String? { get }
-    
-    var data : ModelData { get }
 }
 
 /// Default implementations
@@ -74,7 +71,7 @@ public extension ESIndexer {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .formatted(Self.dateEncodingFormat)
         do {
-            let data = try encoder.encode(indexable.data)
+            let data = try encoder.encode(indexable)
             guard let body = String(data: data, encoding: .utf8) else { throw ESIndexingError.errorCreatingUTF8String(data) }
             return self.index(index: IndexableModel.esIndex, type: IndexableModel.esType, id: indexable.esId, body: body, query: query, on: worker)
         } catch {
