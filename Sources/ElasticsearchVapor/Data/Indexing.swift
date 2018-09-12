@@ -63,22 +63,22 @@ extension ESIndexable {
  Allows the indexing or deleting of ESIndexable documents
  */
 public protocol ESIndexer {
-    func index(index: ESIndexName, type: String, id: String?, body: String, query: ESDictionary, on container: Container) -> Future<Void>
+    func index(index: ESIndexName, type: String, id: String?, body: String, query: ESDictionary, on worker: Worker) -> Future<Void>
     func flush(on container: Container) -> Future<Void>
     static var dateEncodingFormat : DateFormatter { get }
 
 }
 
 public extension ESIndexer {
-    func index<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary, on container: Container) -> Future<Void> where IndexableModel : ESIndexable {
+    func index<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary, on worker: Worker) -> Future<Void> where IndexableModel : ESIndexable {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .formatted(Self.dateEncodingFormat)
         do {
             let data = try encoder.encode(indexable.data)
             guard let body = String(data: data, encoding: .utf8) else { throw ESIndexingError.errorCreatingUTF8String(data) }
-            return self.index(index: IndexableModel.esIndex, type: IndexableModel.esType, id: indexable.esId, body: body, query: query, on: container)
+            return self.index(index: IndexableModel.esIndex, type: IndexableModel.esType, id: indexable.esId, body: body, query: query, on: worker)
         } catch {
-            return container.future(error: error)
+            return worker.future(error: error)
         }
     }
     func delete<IndexableModel>(_ indexable: IndexableModel) throws {
@@ -94,7 +94,7 @@ extension ElasticsearchClient : ESIndexer {
         return formatter
     }()
     
-    public func index(index: ESIndexName, type: String, id: String?, body: String, query: ESDictionary, on container: Container) -> Future<Void> {
+    public func index(index: ESIndexName, type: String, id: String?, body: String, query: ESDictionary, on worker: Worker) -> Future<Void> {
         let method : HTTPMethod = (id != nil ? .PUT : .POST)
         
         let path = [self.prefix(index).description, type, id]
@@ -102,6 +102,9 @@ extension ElasticsearchClient : ESIndexer {
         return self.request(method: method, path: path, query: query, requestBody: body).transform(to: ())
     }
     
+    public func index<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary) -> Future<Void> where IndexableModel : ESIndexable {
+        return self.index(indexable, query: query, on: self.eventLoop)
+    }
     public func delete<IndexableModel>(_ indexable: IndexableModel) throws {
     }
     
