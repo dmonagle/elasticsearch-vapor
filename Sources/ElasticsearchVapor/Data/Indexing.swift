@@ -15,7 +15,7 @@ public enum ESIndexingError : ElasticsearchError {
 
 
 /// A structure that represents an elasticsearch index name
-public struct ESIndexName : CustomStringConvertible {
+public struct ESIndexName : CustomStringConvertible, Encodable {
     public var prefix : String?
     public var name : String
 
@@ -28,6 +28,11 @@ public struct ESIndexName : CustomStringConvertible {
                 return name
             }
         }
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(description)
     }
 
     public init(prefix: String? = nil, _ name: String) {
@@ -60,52 +65,29 @@ extension ESIndexable {
  Allows the indexing or deleting of ESIndexable documents
  */
 public protocol ESIndexer {
-    func index(index: ESIndexName, type: String, id: String?, body: String, query: ESDictionary, on worker: Worker) -> Future<Void>
-    func flush(on container: Container) -> Future<Void>
+    var eventLoop : EventLoop { get }
+    func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) -> Future<Void>
+//    func flush(on container: Container) -> Future<Void>
     static var dateEncodingFormat : DateFormatter { get }
 
 }
 
 public extension ESIndexer {
-    func index<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary, on worker: Worker) -> Future<Void> where IndexableModel : ESIndexable {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .formatted(Self.dateEncodingFormat)
+    func index<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary) -> Future<Void> where IndexableModel : ESIndexable {
         do {
-            let data = try encoder.encode(indexable)
-            guard let body = String(data: data, encoding: .utf8) else { throw ESIndexingError.errorCreatingUTF8String(data) }
-            return self.index(index: IndexableModel.esIndex, type: IndexableModel.esType, id: indexable.esId, body: body, query: query, on: worker)
+            let body = try HTTPBody(data: self.encode(indexable))
+            return self.index(index: IndexableModel.esIndex, type: IndexableModel.esType, id: indexable.esId, body: body, query: query)
         } catch {
-            return worker.future(error: error)
+            return self.eventLoop.future(error: error)
         }
     }
     func delete<IndexableModel>(_ indexable: IndexableModel) throws {
     }
-}
 
-extension ElasticsearchClient : ESIndexer {
-    public static var dateEncodingFormat: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSXXXXX"
-        return formatter
-    }()
-    
-    public func index(index: ESIndexName, type: String, id: String?, body: String, query: ESDictionary, on worker: Worker) -> Future<Void> {
-        let method : HTTPMethod = (id != nil ? .PUT : .POST)
-        
-        let path = [self.prefix(index).description, type, id]
-        
-        return self.request(method: method, path: path, query: query, requestBody: body).transform(to: ())
+    func encode<IndexableModel>(_ indexable: IndexableModel) throws -> Data where IndexableModel : ESIndexable {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .formatted(Self.dateEncodingFormat)
+        return try encoder.encode(indexable)
     }
-    
-    public func index<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary) -> Future<Void> where IndexableModel : ESIndexable {
-        return self.index(indexable, query: query, on: self.eventLoop)
-    }
-    public func delete<IndexableModel>(_ indexable: IndexableModel) throws {
-    }
-    
-    public func flush(on container: Container) -> Future<Void> {
-        return container.future()
-    }
+
 }

@@ -62,7 +62,7 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
         }.wait()
     }
     
-    public func request(method: HTTPMethod, path pathArray: ESArray = [], query: ESDictionary = [:], requestBody: String? = nil) -> Future<HTTPResponse> {
+    public func request(method: HTTPMethod, path pathArray: ESArray = [], query: ESDictionary = [:], requestBody: HTTPBody = HTTPBody.empty) -> Future<HTTPResponse> {
         return httpClient.flatMap { client in
             let path : String
             do {
@@ -75,9 +75,9 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
             var request = HTTPRequest(method: method, url: pathWithQuery)
             request.headers.add(name: "Content-Type", value: "application/json")
             self.logger?.record(query: "\(method) \(pathWithQuery)")
-            if let body = requestBody {
-                if body.count > 0 {
-                    request.body = HTTPBody(string: body)
+            if let bodyCount = requestBody.count {
+                if bodyCount > 0 {
+                    request.body = requestBody
                     // As there is an issue sending a body with a GET, we take the advice of Elasticsearch and change the request to a .POST
                     //
                     // From https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-body.html
@@ -86,8 +86,8 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
                         request.method = .POST
                     }
                     
-                    if body.lengthOfBytes(using: .utf8) <= 1024 {
-                        self.logger?.record(query: "Request body:\n\(body)")
+                    if bodyCount <= 1024 {
+                        self.logger?.record(query: "Request body:\n\(requestBody)")
                     }
                 }
             }
@@ -100,7 +100,8 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
     ///
     /// - Parameter indexName: The ESIndexName to be prefixed
     /// - Returns: An ESIndexName with the prefix set appropriately
-    public func prefix(_ indexName: ESIndexName) -> ESIndexName {
+    public func prefix(_ indexName: ESIndexName?) -> ESIndexName? {
+        guard let indexName = indexName else { return nil }
         if indexName.prefix == nil { return ESIndexName(prefix: self.config.defaultPrefix, indexName.name) }
         return indexName
     }
