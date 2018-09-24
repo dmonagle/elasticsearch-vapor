@@ -105,9 +105,26 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
         if indexName.prefix == nil { return ESIndexName(prefix: self.config.defaultPrefix, indexName.name) }
         return indexName
     }
+    
+    public func makePath(index: ESIndexName? = nil, type: String? = nil, for action: String? = nil) -> ESArray {
+        let path : ESArray = [self.prefix(index)?.description ?? "_all", type, action]
+        return path
+    }
+
+    // MARK: JSON
+    
+    func decode<ResponseType>(body: HTTPBody) throws -> ResponseType where ResponseType : Decodable {
+        guard let data = body.data else { throw ESApiError.couldNotDecodeJsonBody(body) }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .formatted(ElasticsearchClient.dateEncodingFormat)
+
+        return try decoder.decode(ResponseType.self, from: data)
+    }
+
 }
 
-/// MARK: - Config
+// MARK: - Config
 public struct ElasticsearchConfig: Codable {
     public var seedURLs : Set<URL>
     public var resurrectAfter : Int /// Seconds after which to ressurect a dead host

@@ -66,28 +66,38 @@ extension ESIndexable {
  */
 public protocol ESIndexer {
     var eventLoop : EventLoop { get }
-    func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) -> Future<Void>
-//    func flush(on container: Container) -> Future<Void>
+    func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) throws -> Future<Void>
+    func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> Future<Void>
+    func flush() throws -> Future<Void>
     static var dateEncodingFormat : DateFormatter { get }
 
 }
 
 public extension ESIndexer {
-    func index<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary) -> Future<Void> where IndexableModel : ESIndexable {
+    func index<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary = [:]) throws -> Future<Void> where IndexableModel : ESIndexable {
         do {
-            let body = try HTTPBody(data: self.encode(indexable))
-            return self.index(index: IndexableModel.esIndex, type: IndexableModel.esType, id: indexable.esId, body: body, query: query)
+            let body = try HTTPBody(data: self.encodeJson(indexable))
+            return try self.index(index: IndexableModel.esIndex, type: IndexableModel.esType, id: indexable.esId, body: body, query: query)
         } catch {
             return self.eventLoop.future(error: error)
         }
     }
-    func delete<IndexableModel>(_ indexable: IndexableModel) throws {
+    func delete<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary = [:]) throws -> Future<Void> where IndexableModel : ESIndexable {
+        return self.delete(index: IndexableModel.esIndex, type: IndexableModel.esType, id: indexable.esId, query: query)
     }
 
-    func encode<IndexableModel>(_ indexable: IndexableModel) throws -> Data where IndexableModel : ESIndexable {
+    func encodeJson<Model>(_ model: Model) throws -> Data where Model : Encodable {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .formatted(Self.dateEncodingFormat)
-        return try encoder.encode(indexable)
+        return try encoder.encode(model)
     }
 
+    func dateString(_ date : Date) -> String {
+        return Self.dateEncodingFormat.string(from: date)
+    }
+
+    func encodeJsonBody(dictionary: Dictionary<String, Any>) throws -> HTTPBody {
+        let data = try JSONSerialization.data(withJSONObject: dictionary)
+        return HTTPBody(data: data)
+    }
 }

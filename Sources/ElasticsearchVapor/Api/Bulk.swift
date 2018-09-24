@@ -9,6 +9,7 @@ import Foundation
 
 public enum ESBulkError : ElasticsearchError {
     case noId
+    case noData
     case jsonEncodingFailed(String)
 }
 
@@ -132,9 +133,9 @@ public class ESBulkProxy {
             self.totalRecords += 1
         }
     }
-    
-    public func append<Indexable>(_ action: ESBulkAction, _ indexable : Indexable) throws -> Future<Void> where Indexable : ESIndexable {
-        var bulkMeta = ESBulkMeta(_index: client.prefix(Indexable.esIndex), _type: Indexable.esType, _id: indexable.esId, _parent: indexable.esParentId)
+
+    public func append(_ action: ESBulkAction, index: ESIndexName, type: String, id: String? = nil, parentId: String? = nil, data: Data) throws -> Future<Void> {
+        var bulkMeta = ESBulkMeta(_index: client.prefix(index), _type: type, _id: id, _parent: parentId)
         
         // If the index is the same as the defaultIndex, remove it from the bulkData
         if let defaultIndex = defaultIndex {
@@ -142,16 +143,20 @@ public class ESBulkProxy {
                 bulkMeta._index = nil
             }
         }
-
+        
         // Remove the type on the bulkData if it's the same as the defaultType
-        if Indexable.esType == defaultType {
+        if type == defaultType {
             bulkMeta._type = nil
         }
-
-        let data = try client.encode(indexable)
+        
         let bulkData = ESBulkActionRequest(action: action, meta: bulkMeta, data: data)
         
         return try append(data: bulkData.payload())
+    }
+    
+    public func append<Indexable>(_ action: ESBulkAction, _ indexable : Indexable) throws -> Future<Void> where Indexable : ESIndexable {
+        let data = try client.encodeJson(indexable)
+        return try append(action, index: Indexable.esIndex, type: Indexable.esType, id: indexable.esId, parentId: indexable.esParentId, data: data)
     }
 }
 
@@ -164,7 +169,13 @@ extension ESBulkProxy : ESIndexer {
         return ElasticsearchClient.dateEncodingFormat
     }
 
-    public func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) -> EventLoopFuture<Void> {
-        return client.index(index: index, type: type, id: id, body: body, query: query)
+    public func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) throws -> EventLoopFuture<Void> {
+        let action : ESBulkAction = (id != nil ? .update : .create)
+        guard let data = body.data else { throw ESBulkError.noData }
+        return try append(action, index: index, type: type, id: id, data: data)
+    }
+
+    public func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> EventLoopFuture<Void> {
+        return client.delete(index: index, type: type, id: id, query: query)
     }
 }
