@@ -114,12 +114,18 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
     // MARK: JSON
     
     func decode<ResponseType>(body: HTTPBody) throws -> ResponseType where ResponseType : Decodable {
-        guard let data = body.data else { throw ESApiError.couldNotDecodeJsonBody(body) }
+        guard let data = body.data else { throw ESApiError.noBodyData(body) }
         
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .formatted(ElasticsearchClient.dateEncodingFormat)
 
-        return try decoder.decode(ResponseType.self, from: data)
+        do {
+            let response = try decoder.decode(ResponseType.self, from: data)
+            return response
+        }
+        catch {
+            throw ESApiError.couldNotDecodeJsonBody(error, body)
+        }
     }
 
 }

@@ -35,7 +35,7 @@ extension String {
 
 // MARK - Basic Type Conformance
 
-public protocol BasicESParameter : ESValue, CustomStringConvertible {
+public protocol BasicESParameter : ESValue, CustomStringConvertible, Codable {
 }
 
 extension BasicESParameter {

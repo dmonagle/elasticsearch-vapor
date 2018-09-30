@@ -8,5 +8,6 @@
 import Foundation
 
 enum ESApiError : Error {
-    case couldNotDecodeJsonBody(HTTPBody)
+    case noBodyData(HTTPBody)
+    case couldNotDecodeJsonBody(Error, HTTPBody)
 }
