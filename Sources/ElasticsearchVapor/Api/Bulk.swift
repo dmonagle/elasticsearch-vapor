@@ -56,6 +56,7 @@ public extension ElasticsearchClient {
         let path = [index?.description, type, "_bulk"]
         let response = self.request(method: .POST, path: path, query: query, requestBody: body)
         return response.map { response in
+//            print(response.body)
         }.transform(to: ())
     }
 }
