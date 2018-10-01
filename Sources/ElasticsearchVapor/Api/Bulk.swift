@@ -171,9 +171,8 @@ extension ESBulkProxy : ESIndexer {
     }
 
     public func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) throws -> EventLoopFuture<Void> {
-        let action : ESBulkAction = (id != nil ? .update : .create)
         guard let data = body.data else { throw ESBulkError.noData }
-        return try append(action, index: index, type: type, id: id, data: data)
+        return try append(.index, index: index, type: type, id: id, data: data)
     }
 
     public func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> EventLoopFuture<Void> {
