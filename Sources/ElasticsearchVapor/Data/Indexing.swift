@@ -69,8 +69,7 @@ public protocol ESIndexer {
     func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) throws -> Future<Void>
     func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> Future<Void>
     func flush() throws -> Future<Void>
-    static var dateEncodingFormat : DateFormatter { get }
-
+    var jsonEncoder : JSONEncoder { get }
 }
 
 public extension ESIndexer {
@@ -87,13 +86,7 @@ public extension ESIndexer {
     }
 
     func encodeJson<Model>(_ model: Model) throws -> Data where Model : Encodable {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .formatted(Self.dateEncodingFormat)
-        return try encoder.encode(model)
-    }
-
-    func dateString(_ date : Date) -> String {
-        return Self.dateEncodingFormat.string(from: date)
+        return try jsonEncoder.encode(model)
     }
 
     func encodeJsonBody(dictionary: Dictionary<String, Any>) throws -> HTTPBody {

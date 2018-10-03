@@ -8,11 +8,17 @@
 import Foundation
 
 extension ElasticsearchClient {
+    public func scroll(query: ESDictionary) -> Future<HTTPResponse> {
+        let path = ["_search", "scroll"]
+        
+        return request(method: .GET, path: path, query: query)
+    }
+    
     public func scroll<Model>(query: ESDictionary) -> Future<ESSearchResponse<Model>> {
         let path = ["_search", "scroll"]
         
-        return request(method: .GET, path: path, query: query).map { httpResponse in
-            return try self.decode(body: httpResponse.body)
+        return request(method: .GET, path: path, query: query).flatMap { httpResponse in
+            return self.decodeAsync(body: httpResponse.body)
         }
     }
     

@@ -9,7 +9,22 @@ import HTTP
 import Dispatch
 
 /// An Elasticsearch client.
-public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
+public final class ElasticsearchClient: DatabaseConnection, BasicWorker, ESIndexer {
+    // MARK: ESIndexer
+    public static var dateEncodingFormat: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSXXXXX"
+        return formatter
+    }()
+    
+    public var jsonEncoder : JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .formatted(ElasticsearchClient.dateEncodingFormat)
+        return encoder
+    }()
+
     public typealias Database = ElasticsearchDatabase
     
     /// See `BasicWorker`.
@@ -112,6 +127,22 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker {
     }
 
     // MARK: JSON
+    
+    /// Decodes asynchronously on the global queue
+    func decodeAsync<ResponseType>(body: HTTPBody) -> Future<ResponseType> where ResponseType : Decodable {
+        let promise = self.eventLoop.newPromise(ResponseType.self)
+        DispatchQueue.global().async {
+            do {
+                let result : ResponseType = try self.decode(body: body)
+                
+                promise.succeed(result: result)
+            }
+            catch {
+                promise.fail(error: error)
+            }
+        }
+        return promise.futureResult
+    }
     
     func decode<ResponseType>(body: HTTPBody) throws -> ResponseType where ResponseType : Decodable {
         guard let data = body.data else { throw ESApiError.noBodyData(body) }

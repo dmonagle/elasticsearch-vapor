@@ -28,9 +28,8 @@ public struct ESBulkActionRequest {
     
     var data: Data
     
-    func payload() throws -> Data {
+    func encodedPayload(with encoder: JSONEncoder) throws -> Data {
         var payloadData = Data()
-        let encoder = JSONEncoder()
         guard let metaJson = try String(data: encoder.encode(meta), encoding: .utf8) else { throw ESBulkError.jsonEncodingFailed("")}
         
         let actionDataString = "{\"\(action.rawValue)\":\(metaJson)\n"
@@ -152,7 +151,7 @@ public class ESBulkProxy {
         
         let bulkData = ESBulkActionRequest(action: action, meta: bulkMeta, data: data)
         
-        return try append(data: bulkData.payload())
+        return try append(data: bulkData.encodedPayload(with: jsonEncoder))
     }
     
     public func append<Indexable>(_ action: ESBulkAction, _ indexable : Indexable) throws -> Future<Void> where Indexable : ESIndexable {
@@ -162,6 +161,10 @@ public class ESBulkProxy {
 }
 
 extension ESBulkProxy : ESIndexer {
+    public var jsonEncoder : JSONEncoder {
+        return client.jsonEncoder
+    }
+    
     public var eventLoop: EventLoop {
         return client.eventLoop
     }
