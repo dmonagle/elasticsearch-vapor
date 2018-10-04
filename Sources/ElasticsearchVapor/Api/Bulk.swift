@@ -105,9 +105,8 @@ public class ESBulkProxy {
         ensureBufferEndsWithNewline()
         client.logger?.record(query: "Flushing Elasticsearch bulk proxy: \(recordsInBuffer) records, \(buffer.count) bytes.")
         let body = HTTPBody(data: buffer)
-        return try client.bulk(index: defaultIndex, type: defaultType, body: body).always {
-            self.resetBuffer()
-        }
+        self.resetBuffer()
+        return try client.bulk(index: defaultIndex, type: defaultType, body: body)
     }
     
     internal func append(data: Data) throws -> Future<Void> {
