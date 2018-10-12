@@ -37,7 +37,7 @@ extension ElasticsearchClient {
 }
 
 extension ElasticsearchClient {
-    public func scrollSearch<T>(index: ESIndexName, type: String? = nil, query: ESDictionary = [:], body: HTTPBody, scrollTimeout: String = "1m", _ process: @escaping (ESSearchResponse<T>) -> Future<Void>) throws -> Future<Void> {
+    public func scrollSearch<Model>(index: ESIndexName, type: String? = nil, query: ESDictionary = [:], body: HTTPBody, scrollTimeout: String = "1m", _ process: @escaping (ESSearchResponse<Model>) -> Future<Void>) throws -> Future<Void> {
         var scrollId : String?
         func iterateScroll<T>(response: ESSearchResponse<T>, _ process: @escaping (ESSearchResponse<T>) -> Future<Void>) -> Future<Void> {
             // we got a partial result, let's check what it is

@@ -101,7 +101,7 @@ extension ESNode : Hashable, Equatable {
     }
     
     // Satisfy the Equatable Protocol
-    open static func == (lhs: ESNode, rhs: ESNode) -> Bool {
+    public static func == (lhs: ESNode, rhs: ESNode) -> Bool {
         return lhs.url == rhs.url
     }
 }
