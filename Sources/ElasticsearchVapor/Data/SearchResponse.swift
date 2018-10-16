@@ -24,13 +24,13 @@ public class ESSearchResponseWithAggs<Model, AggregationType> : Codable where Mo
         public var _index : String
         public var _type : String
         public var _id : String
-        public var _score : UInt?
+        public var _score : Double?
         public var _source : Model
-        public var sort : JSON
+        public var sort : JSON?
     }
     public class HitResult : Codable {
         public var total: UInt
-        public var max_score: UInt?
+        public var max_score: Double?
         public var hits : [HitData]
     }
     
