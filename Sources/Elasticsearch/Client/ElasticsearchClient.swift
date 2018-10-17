@@ -10,21 +10,9 @@ import Dispatch
 
 /// An Elasticsearch client.
 public final class ElasticsearchClient: DatabaseConnection, BasicWorker, ESIndexer {
-    // MARK: ESIndexer
-    public static var dateEncodingFormat: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSXXXXX"
-        return formatter
-    }()
+    public var jsonEncoder: JSONEncoder = Database.jsonEncoder
     
-    public var jsonEncoder : JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .formatted(ElasticsearchClient.dateEncodingFormat)
-        return encoder
-    }()
-
+    // MARK: ESIndexer
     public typealias Database = ElasticsearchDatabase
     
     /// See `BasicWorker`.
@@ -148,7 +136,7 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker, ESIndex
         guard let data = body.data else { throw ESApiError.noBodyData(body) }
         
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .formatted(ElasticsearchClient.dateEncodingFormat)
+        decoder.dateDecodingStrategy = .formatted(ElasticsearchDatabase.dateEncodingFormat)
 
         do {
             let response = try decoder.decode(ResponseType.self, from: data)

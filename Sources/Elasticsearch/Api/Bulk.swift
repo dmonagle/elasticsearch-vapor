@@ -169,7 +169,7 @@ extension ESBulkProxy : ESIndexer {
     }
     
     public static var dateEncodingFormat: DateFormatter {
-        return ElasticsearchClient.dateEncodingFormat
+        return ElasticsearchDatabase.dateEncodingFormat
     }
 
     public func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) throws -> EventLoopFuture<Void> {
