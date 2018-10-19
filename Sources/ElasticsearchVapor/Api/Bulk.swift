@@ -55,7 +55,26 @@ public extension ElasticsearchClient {
         let path = [index?.description, type, "_bulk"]
         let response = self.request(method: .POST, path: path, query: query, requestBody: body)
         return response.map { response in
-//            print(response.body)
+        }.transform(to: ())
+    }
+
+    public func bulk<Model>(_ action : ESBulkAction, models: [Model], query: ESDictionary = [:]) throws -> Future<Void> where Model : ESIndexable {
+        let index = self.prefix(Model.esIndex)
+        let path = [index?.description, Model.esType, "_bulk"]
+        
+        let bulkRequests = try models.map { (model) -> ESBulkActionRequest in
+            let data = try self.encodeJson(model)
+            let meta = ESBulkMeta(_index: nil, _type: nil, _id: model.esId, _parent: model.esParentId)
+            return ESBulkActionRequest(action: action, meta: meta, data: data)
+        }
+        var buffer = Data()
+        for request in bulkRequests {
+            try buffer.append(request.encodedPayload(with: jsonEncoder))
+        }
+        let body = HTTPBody(data: buffer)
+        
+        let response = self.request(method: .POST, path: path, query: query, requestBody: body)
+        return response.map { response in
         }.transform(to: ())
     }
 }
