@@ -61,6 +61,32 @@ extension ESIndexable {
     public var esParentId: String? { get { return nil } }
 }
 
+public protocol ESMappable : ESIndexable {
+    static var esMappings : [String: Any] { get }
+}
+
+public extension ElasticsearchClient {
+    public func create(index mappable: ESMappable.Type, type: String? = nil, query: ESDictionary = [:], body: HTTPBody) throws -> Future<HTTPResponse> {
+        let body : [String: Any] = [
+            "mappings": mappable.esMappings
+        ]
+        let httpBody = try encodeJsonBody(dictionary: body)
+        return create(index: mappable.esIndex, body: httpBody)
+    }
+    
+    public func ensure(index mappable: ESMappable.Type, type: String? = nil, query: ESDictionary = [:]) throws -> Future<Bool> {
+        let body : [String: Any] = [
+            "mappings": mappable.esMappings
+        ]
+        let httpBody = try encodeJsonBody(dictionary: body)
+        return ensure(index: mappable.esIndex, query: query, body: httpBody)
+    }
+
+    public func delete(index mappable: ESMappable.Type, type: String? = nil, query: ESDictionary = [:]) throws -> Future<HTTPResponse> {
+        return delete(index: mappable.esIndex, query: query)
+    }
+}
+
 /**
  Allows the indexing or deleting of ESIndexable documents
  */
