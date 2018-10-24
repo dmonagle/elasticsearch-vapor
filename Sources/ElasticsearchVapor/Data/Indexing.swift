@@ -92,14 +92,14 @@ public extension ElasticsearchClient {
  */
 public protocol ESIndexer {
     var eventLoop : EventLoop { get }
-    func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) throws -> Future<Void>
-    func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> Future<Void>
-    func flush() throws -> Future<Void>
+    func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) throws -> Future<HTTPResponse?>
+    func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> Future<HTTPResponse?>
+    func flush() throws -> Future<HTTPResponse?>
     var jsonEncoder : JSONEncoder { get }
 }
 
 public extension ESIndexer {
-    func index<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary = [:]) throws -> Future<Void> where IndexableModel : ESIndexable {
+    func index<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary = [:]) throws -> Future<HTTPResponse?> where IndexableModel : ESIndexable {
         do {
             let body = try HTTPBody(data: self.encodeJson(indexable))
             return try self.index(index: IndexableModel.esIndex, type: IndexableModel.esType, id: indexable.esId, body: body, query: query)
@@ -107,7 +107,8 @@ public extension ESIndexer {
             return self.eventLoop.future(error: error)
         }
     }
-    func delete<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary = [:]) throws -> Future<Void> where IndexableModel : ESIndexable {
+    
+    func delete<IndexableModel>(_ indexable: IndexableModel, query: ESDictionary = [:]) throws -> Future<HTTPResponse?> where IndexableModel : ESIndexable {
         return self.delete(index: IndexableModel.esIndex, type: IndexableModel.esType, id: indexable.esId, query: query)
     }
 

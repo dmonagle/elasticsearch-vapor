@@ -12,20 +12,21 @@ extension ElasticsearchClient {
         return request(method: .GET, path: path, query: query)
     }
     
-    public func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) -> Future<Void> {
+    public func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) -> Future<HTTPResponse?> {
         let method : HTTPMethod = (id != nil ? .PUT : .POST)
         
         let path = [self.prefix(index)?.description, type, id]
         
-        return self.request(method: method, path: path, query: query, requestBody: body).transform(to: ())
+        return self.request(method: method, path: path, query: query, requestBody: body).map { $0 }
     }
     
-    public func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> EventLoopFuture<Void> {
+    public func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> EventLoopFuture<HTTPResponse?> {
         let path = [self.prefix(index)?.description, type, id]
-        return self.request(method: .DELETE, path: path, query: query).transform(to: ())
+        return self.request(method: .DELETE, path: path, query: query).map(to: HTTPResponse?.self) { $0 }
     }
     
-    public func flush() throws -> EventLoopFuture<Void> {
-        return eventLoop.future()
+    public func flush() throws -> EventLoopFuture<HTTPResponse?> {
+        let response : HTTPResponse? = nil
+        return eventLoop.future(response)
     }
 }

@@ -50,15 +50,13 @@ public struct ESBulkMeta : Encodable {
 }
 
 public extension ElasticsearchClient {
-    public func bulk(index: ESIndexName? = nil, type: String? = nil, body: HTTPBody, query: ESDictionary = [:]) throws -> Future<Void> {
+    public func bulk(index: ESIndexName? = nil, type: String? = nil, body: HTTPBody, query: ESDictionary = [:]) throws -> Future<HTTPResponse> {
         let index = self.prefix(index)
         let path = [index?.description, type, "_bulk"]
-        let response = self.request(method: .POST, path: path, query: query, requestBody: body)
-        return response.map { response in
-        }.transform(to: ())
+        return self.request(method: .POST, path: path, query: query, requestBody: body)
     }
 
-    public func bulk<Model>(_ action : ESBulkAction, models: [Model], query: ESDictionary = [:]) throws -> Future<Void> where Model : ESIndexable {
+    public func bulk<Model>(_ action : ESBulkAction, models: [Model], query: ESDictionary = [:]) throws -> Future<HTTPResponse> where Model : ESIndexable {
         let index = self.prefix(Model.esIndex)
         let path = [index?.description, Model.esType, "_bulk"]
         
@@ -73,9 +71,7 @@ public extension ElasticsearchClient {
         }
         let body = HTTPBody(data: buffer)
         
-        let response = self.request(method: .POST, path: path, query: query, requestBody: body)
-        return response.map { response in
-        }.transform(to: ())
+        return self.request(method: .POST, path: path, query: query, requestBody: body)
     }
 }
 
@@ -119,17 +115,19 @@ public class ESBulkProxy {
         if buffer.last != ESBulkActionRequest.NewLine { buffer.append(ESBulkActionRequest.NewLine)}
     }
     
-    public func flush() throws -> Future<Void> {
-        guard !buffer.isEmpty else { return eventLoop.future() }
+    public func flush() throws -> Future<HTTPResponse?> {
+        let nilResponse : HTTPResponse? = nil
+        guard !buffer.isEmpty else { return eventLoop.future(nilResponse) }
         ensureBufferEndsWithNewline()
         client.logger?.record(query: "Flushing Elasticsearch bulk proxy: \(recordsInBuffer) records, \(buffer.count) bytes.")
         let body = HTTPBody(data: buffer)
         self.resetBuffer()
-        return try client.bulk(index: defaultIndex, type: defaultType, body: body)
+        return try client.bulk(index: defaultIndex, type: defaultType, body: body).map(to: HTTPResponse?.self) { $0 }
+        
     }
     
-    internal func append(data: Data) throws -> Future<Void> {
-        let returnFuture : Future<Void>
+    internal func append(data: Data) throws -> Future<HTTPResponse?> {
+        let returnFuture : Future<HTTPResponse?>
         
         // If a single input doesn't fit within the threshold, expand the threshold to allow it
         if data.count > threshhold {
@@ -142,7 +140,7 @@ public class ESBulkProxy {
             returnFuture = try flush()
         }
         else {
-            returnFuture = eventLoop.future()
+            returnFuture = eventLoop.future(nil)
         }
         
         return returnFuture.always {
@@ -152,7 +150,7 @@ public class ESBulkProxy {
         }
     }
 
-    public func append(_ action: ESBulkAction, index: ESIndexName, type: String, id: String? = nil, parentId: String? = nil, data: Data) throws -> Future<Void> {
+    public func append(_ action: ESBulkAction, index: ESIndexName, type: String, id: String? = nil, parentId: String? = nil, data: Data) throws -> Future<HTTPResponse?> {
         var bulkMeta = ESBulkMeta(_index: client.prefix(index), _type: type, _id: id, _parent: parentId)
         
         // If the index is the same as the defaultIndex, remove it from the bulkData
@@ -172,7 +170,7 @@ public class ESBulkProxy {
         return try append(data: bulkData.encodedPayload(with: jsonEncoder))
     }
     
-    public func append<Indexable>(_ action: ESBulkAction, _ indexable : Indexable) throws -> Future<Void> where Indexable : ESIndexable {
+    public func append<Indexable>(_ action: ESBulkAction, _ indexable : Indexable) throws -> Future<HTTPResponse?> where Indexable : ESIndexable {
         let data = try client.encodeJson(indexable)
         return try append(action, index: Indexable.esIndex, type: Indexable.esType, id: indexable.esId, parentId: indexable.esParentId, data: data)
     }
@@ -191,12 +189,12 @@ extension ESBulkProxy : ESIndexer {
         return ElasticsearchClient.dateEncodingFormat
     }
 
-    public func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) throws -> EventLoopFuture<Void> {
+    public func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) throws -> EventLoopFuture<HTTPResponse?> {
         guard let data = body.data else { throw ESBulkError.noData }
         return try append(.index, index: index, type: type, id: id, data: data)
     }
 
-    public func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> EventLoopFuture<Void> {
+    public func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> EventLoopFuture<HTTPResponse?> {
         return client.delete(index: index, type: type, id: id, query: query)
     }
 }
