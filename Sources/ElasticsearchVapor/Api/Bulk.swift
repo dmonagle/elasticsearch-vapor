@@ -115,14 +115,14 @@ public class ESBulkProxy {
         if buffer.last != ESBulkActionRequest.NewLine { buffer.append(ESBulkActionRequest.NewLine)}
     }
     
-    public func flush() throws -> Future<HTTPResponse?> {
+    public func flush(query: ESDictionary = [:]) throws -> Future<HTTPResponse?> {
         let nilResponse : HTTPResponse? = nil
         guard !buffer.isEmpty else { return eventLoop.future(nilResponse) }
         ensureBufferEndsWithNewline()
         client.logger?.record(query: "Flushing Elasticsearch bulk proxy: \(recordsInBuffer) records, \(buffer.count) bytes.")
         let body = HTTPBody(data: buffer)
         self.resetBuffer()
-        return try client.bulk(index: defaultIndex, type: defaultType, body: body).map(to: HTTPResponse?.self) { $0 }
+        return try client.bulk(index: defaultIndex, type: defaultType, body: body, query: query).map(to: HTTPResponse?.self) { $0 }
         
     }
     

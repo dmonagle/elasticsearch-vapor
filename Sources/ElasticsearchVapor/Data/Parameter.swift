@@ -47,6 +47,7 @@ extension BasicESParameter {
 extension String : BasicESParameter {}
 extension Int : BasicESParameter {}
 extension Double : BasicESParameter {}
+extension Bool : BasicESParameter {}
 
 // MARK: - Dictionary Conformance
 

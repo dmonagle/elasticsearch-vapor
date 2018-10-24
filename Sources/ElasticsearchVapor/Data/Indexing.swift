@@ -94,7 +94,7 @@ public protocol ESIndexer {
     var eventLoop : EventLoop { get }
     func index(index: ESIndexName, type: String, id: String?, body: HTTPBody, query: ESDictionary) throws -> Future<HTTPResponse?>
     func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> Future<HTTPResponse?>
-    func flush() throws -> Future<HTTPResponse?>
+    func flush(query: ESDictionary) throws -> Future<HTTPResponse?>
     var jsonEncoder : JSONEncoder { get }
 }
 
