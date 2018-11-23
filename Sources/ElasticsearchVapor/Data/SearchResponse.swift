@@ -47,3 +47,7 @@ public class ESAggregationResponse<BucketType> : Codable where BucketType : Coda
     public var sum_other_doc_count : Int
     public var buckets : [BucketType]
 }
+
+public class ESAggregationValue<ValueType> : Codable where ValueType : Codable {
+    var value : ValueType
+}
