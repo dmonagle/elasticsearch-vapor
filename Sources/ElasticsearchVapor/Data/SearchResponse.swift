@@ -49,5 +49,5 @@ public class ESAggregationResponse<BucketType> : Codable where BucketType : Coda
 }
 
 public class ESAggregationValue<ValueType> : Codable where ValueType : Codable {
-    var value : ValueType
+    public var value : ValueType
 }

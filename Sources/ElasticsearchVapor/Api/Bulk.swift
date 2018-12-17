@@ -20,6 +20,7 @@ public enum ESBulkAction: String {
     case update /// Expects that the partial doc, upsert and script and its options are specified on the next line. Fails if it doesn't exist.
 }
 
+///
 public struct ESBulkActionRequest {
     public static let NewLine: UInt8 = 0x0A
 
@@ -53,7 +54,8 @@ public extension ElasticsearchClient {
     public func bulk(index: ESIndexName? = nil, type: String? = nil, body: HTTPBody, query: ESDictionary = [:]) throws -> Future<HTTPResponse> {
         let index = self.prefix(index)
         let path = [index?.description, type, "_bulk"]
-        return self.request(method: .POST, path: path, query: query, requestBody: body)
+        let httpResponse = self.request(method: .POST, path: path, query: query, requestBody: body)
+        return httpResponse
     }
 
     public func bulk<Model>(_ action : ESBulkAction, models: [Model], query: ESDictionary = [:]) throws -> Future<HTTPResponse> where Model : ESIndexable {
@@ -71,7 +73,8 @@ public extension ElasticsearchClient {
         }
         let body = HTTPBody(data: buffer)
         
-        return self.request(method: .POST, path: path, query: query, requestBody: body)
+        let httpResponse = self.request(method: .POST, path: path, query: query, requestBody: body)
+        return httpResponse
     }
 }
 
@@ -122,7 +125,10 @@ public class ESBulkProxy {
         client.logger?.record(query: "Flushing Elasticsearch bulk proxy: \(recordsInBuffer) records, \(buffer.count) bytes.")
         let body = HTTPBody(data: buffer)
         self.resetBuffer()
-        return try client.bulk(index: defaultIndex, type: defaultType, body: body, query: query).map(to: HTTPResponse?.self) { $0 }
+        return try client.bulk(index: defaultIndex, type: defaultType, body: body, query: query).map(to: HTTPResponse?.self) {
+//            print($0.body.debugDescription)
+            return $0
+        }
         
     }
     
