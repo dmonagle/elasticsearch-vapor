@@ -29,6 +29,13 @@ public struct ESBulkActionRequest {
     
     var data: Data
     
+    func wrapDoc(with encoder: JSONEncoder) throws -> Data {
+        var docData = Data("{\"doc\":".utf8)
+        docData.append(self.data)
+        docData.append(Data("}".utf8))
+        return docData
+    }
+    
     func encodedPayload(with encoder: JSONEncoder) throws -> Data {
         var payloadData = Data()
         guard let metaJson = try String(data: encoder.encode(meta), encoding: .utf8) else { throw ESBulkError.jsonEncodingFailed("")}
@@ -36,6 +43,15 @@ public struct ESBulkActionRequest {
         let actionDataString = "{\"\(action.rawValue)\":\(metaJson)\n"
         guard let actionData = actionDataString.data(using: .utf8) else { throw ESBulkError.jsonEncodingFailed(actionDataString) }
         payloadData.append(actionData)
+        
+        let data : Data
+        if action == .update {
+            data = try wrapDoc(with: encoder)
+        }
+        else {
+            data = self.data
+        }
+        
         payloadData.append(data)
         if payloadData.last != ESBulkActionRequest.NewLine { payloadData.append(ESBulkActionRequest.NewLine)}
 
