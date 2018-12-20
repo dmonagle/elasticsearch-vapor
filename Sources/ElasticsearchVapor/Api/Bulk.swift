@@ -97,7 +97,7 @@ public extension ElasticsearchClient {
 public class ESBulkProxy {
     static let defaultThreshold = 12_000_000 // Default to max 12MB requests
     
-    private var client : ElasticsearchClient
+    public var client : ElasticsearchClient
     private var buffer : Data
     public var threshhold: Int = defaultThreshold
     
