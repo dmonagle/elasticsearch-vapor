@@ -39,6 +39,8 @@ playground.xcworkspace
 # Package.pins
 # Package.resolved
 .build/
+.build-linux/
+Tests/LinuxMain.swift
 *.xcodeproj/
 
 # CocoaPods
