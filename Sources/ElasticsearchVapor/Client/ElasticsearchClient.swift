@@ -79,19 +79,29 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker, ESIndex
     
     public func request(method: HTTPMethod, path pathArray: ESArray = [], query: ESDictionary = [:], requestBody: HTTPBody = HTTPBody.empty) -> Future<HTTPResponse> {
         return httpClient.flatMap { client in
-            let path : String
+            var path : String
             do {
                 path = try pathArray.esPathify()
+                let queryString = query.queryString()
+                if !queryString.isEmpty { path = path.appendingFormat("?%s", queryString)}
             }
             catch {
                 return self.httpClient.eventLoop.future(error: error)
             }
-            let pathWithQuery = "\(path)?\(query.queryString())"
-            var request = HTTPRequest(method: method, url: pathWithQuery)
-            request.headers.add(name: "Content-Type", value: "application/json")
-            self.logger?.record(query: "\(method) \(pathWithQuery)")
+            var request = HTTPRequest(method: method, url: path)
+            request.headers.add(name: "Accept-Encoding", value: "gzip")
+
+            if let username = self.config.username, let password = self.config.password {
+                let loginString = String(format: "%@:%@", username, password)
+                let loginData = loginString.data(using: String.Encoding.utf8)!
+                let base64LoginString = loginData.base64EncodedString()
+                request.headers.add(name: "Authorization", value: "Basic \(base64LoginString)")
+            }
+
+            request.body = requestBody
             if let bodyCount = requestBody.count {
                 if bodyCount > 0 {
+                    request.headers.add(name: "Content-Type", value: "application/json")
                     request.body = requestBody
                     // As there is an issue sending a body with a GET, we take the advice of Elasticsearch and change the request to a .POST
                     //
@@ -106,7 +116,11 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker, ESIndex
                     }
                 }
             }
-            return client.send(request)
+//            self.logger?.record(query: request.debugDescription)
+            return client.send(request).map { response in
+//                self.logger?.record(query: response.debugDescription)
+                return response
+            }
         }
     }
 
@@ -186,6 +200,8 @@ public struct ElasticsearchClientConfig: Codable {
     public var maxRetries : Int /// If 0, requests will not be retried
     public var requestTimeout : TimeInterval /// Timeout for each HTTPRequest
     public var defaultPrefix : String? = nil /// The default prefix to add to an indexName
+    public var username : String? = nil // Username if authentication is required
+    public var password : String? = nil // Password if authentication is required
 
     public init(maxRetries : Int = 2, requestTimeout : TimeInterval = 15) {
         self.maxRetries = maxRetries

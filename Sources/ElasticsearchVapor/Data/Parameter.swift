@@ -103,10 +103,11 @@ extension Array : ESValue where Element == ESValue? {
                 return try element.esString().elasticsearchPathify()
             }
         }.compactMap { $0 }
-        return
-            try list
-                .filter { !$0.isEmpty }
-                .joined(separator: "/").elasticsearchEscape()
+        let joinedList = try list
+            .filter { !$0.isEmpty }
+            .joined(separator: "/").elasticsearchEscape()
+        return "/\(joinedList)"
+        
     }
 }
 
