@@ -35,13 +35,13 @@ class ParameterTest: XCTestCase {
     
 
     func testPathify() {
-        XCTAssertEqual(try! ["one/", "/", "two ", "\n", "//three"].esPathify(), "one/two/three")
-        XCTAssertEqual(try! ["one/", "/", nil, "\n", "//three"].compactMap {$0}.esPathify(), "one/three")
-        XCTAssertEqual(try! ["one/", "/", "", "\n", "//three"].esPathify(), "one/three")
+        XCTAssertEqual(try! ["one/", "/", "two ", "\n", "//three"].esPathify(), "/one/two/three")
+        XCTAssertEqual(try! ["one/", "/", nil, "\n", "//three"].compactMap {$0}.esPathify(), "/one/three")
+        XCTAssertEqual(try! ["one/", "/", "", "\n", "//three"].esPathify(), "/one/three")
 
         let indexes : [ESValue?] = ["one", "two", "three"]
         let path = try! [indexes, "_search"].esPathify()
-        XCTAssertEqual(path, "one,two,three/_search")
+        XCTAssertEqual(path, "/one,two,three/_search")
     }
 
     func testListify() {
