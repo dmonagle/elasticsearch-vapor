@@ -83,16 +83,15 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker, ESIndex
             do {
                 path = try pathArray.esPathify()
                 let queryString = query.queryString()
-                if !queryString.isEmpty { path = path.appendingFormat("?%s", queryString)}
+                if !queryString.isEmpty { path = path.appending("?\(queryString)") }
             }
             catch {
                 return self.httpClient.eventLoop.future(error: error)
             }
             var request = HTTPRequest(method: method, url: path)
-            request.headers.add(name: "Accept-Encoding", value: "gzip")
 
             if let username = self.config.username, let password = self.config.password {
-                let loginString = String(format: "%@:%@", username, password)
+                let loginString = String("\(username):\(password)")
                 let loginData = loginString.data(using: String.Encoding.utf8)!
                 let base64LoginString = loginData.base64EncodedString()
                 request.headers.add(name: "Authorization", value: "Basic \(base64LoginString)")
