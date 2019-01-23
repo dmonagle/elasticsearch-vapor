@@ -1,0 +1,60 @@
+#!/bin/bash
+#
+# Usage for this is:
+#
+# linux/test <debug|release> <swift-version> <console|lldb|->
+#
+# If the last parameter is not either console or lldb, the remaining parameters
+# get passed into swift test. 
+#
+# The first two parameters default to debug and 4.2 respectively.
+#
+# To test within lldb, you would use:
+#
+# linux/test debug 4.2 lldb
+
+DEFAULT_SWIFT_VERSION=4.2
+APP_NAME="elasticsearch-vapor"
+NET="${APP_NAME}-net"
+
+if [ -f /.dockerenv ]; then
+    BUILD_TYPE=${1:-debug}
+    ARGS=${@:2}
+    cd /project
+    if [ "$2" = "console" ]; then
+        echo Starting $BUILD_TYPE console...
+        /bin/bash
+    elif [ "$2" = "lldb" ]; then
+        echo Testing $APP_NAME for $BUILD_TYPE in lldb...
+        lldb ${@:3} -o run .build-linux/$BUILD_TYPE/${APP_NAME}PackageTests.xctest 
+    else
+        echo Testing $APP_NAME for $BUILD_TYPE...
+        swift test --configuration $BUILD_TYPE --build-path ./.build-linux $ARGS
+    fi
+else
+    CMD="linux/test"
+    BUILD_TYPE=${1:-debug}
+    SWIFT_VERSION=${2:-$DEFAULT_SWIFT_VERSION}
+    ARGS=${@:3}
+
+    docker network create $NET
+
+    # Create the test config
+    # mkdir -p Config/test
+    # confd/build-conf confd/env/test Config/test
+
+    echo Generating LinuxMain
+    swift test --generate-linuxmain
+
+    # Start the docker container
+    echo Starting geo-swift:$SWIFT_VERSION container...
+    IMAGE=swift:$SWIFT_VERSION
+    CONTAINER="${APP_NAME}-test"
+    mkdir -p tmp
+    docker rm $CONTAINER 
+    docker run -it --privileged --rm \
+        --name $CONTAINER \
+        -v "$PWD":/project \
+        --net $NET \
+        $IMAGE /project/$CMD $BUILD_TYPE $ARGS
+fi
