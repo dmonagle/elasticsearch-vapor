@@ -89,6 +89,7 @@ public final class ElasticsearchClient: DatabaseConnection, BasicWorker, ESIndex
                 return self.httpClient.eventLoop.future(error: error)
             }
             var request = HTTPRequest(method: method, url: path)
+            self.logger?.record(query: "\(request.method) \(request.url.description)")
 
             if let username = self.config.username, let password = self.config.password {
                 let loginString = String("\(username):\(password)")
