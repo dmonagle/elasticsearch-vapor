@@ -15,6 +15,13 @@ public extension ElasticsearchClient {
         return request(method: .POST, path: path, query: query, requestBody: body)
     }
 
+    public func searchPB(index: ESIndexName, type: String? = nil, query: ESDictionary = [:], body: HTTPBody) throws -> Future<ElasticsearchSearchResponse> {
+        return try search(index: index, type: type, query: query, body: body).map { httpResponse in
+            let response = try ElasticsearchSearchResponse(jsonString: httpResponse.body.description)
+            return response
+        }
+    }
+
     public func search<Model>(index: ESIndexName, type: String? = nil, query: ESDictionary = [:], body: HTTPBody) throws -> Future<ESSearchResponse<Model>> {
         return try search(index: index, type: type, query: query, body: body).flatMap { httpResponse in
             return self.decodeAsync(body: httpResponse.body)

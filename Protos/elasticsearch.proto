@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+import "google/protobuf/struct.proto";
+
+message ElasticsearchSearchResponse {
+    message ShardResult {
+        int32 total = 1;
+        int32 successful = 2;
+        int32 skipped = 3;
+        int32 failed = 4;
+    }
+
+    message HitData {
+        string _index = 1;
+        string _type = 2;
+        string _id = 3;
+        double _score = 4;
+        google.protobuf.Struct _source = 5;
+        google.protobuf.Struct _sort = 6;    
+    }
+
+    message HitResults {
+        int32 total = 1;
+        double max_score = 2;
+        repeated HitData hits = 3;
+    }
+
+    int32 took = 1;
+    bool timed_out = 2;
+    string _scroll_id = 3;
+    ShardResult _shards = 4;
+    HitResults hits = 5; 
+    google.protobuf.Struct aggregations = 6; 
+    google.protobuf.Struct error = 7; 
+    int32 status = 8;
+    bool terminated_early = 9;
+}

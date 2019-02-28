@@ -16,6 +16,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/database-kit", from: "1.0.0"),
         .package(url: "https://github.com/vapor/http", from: "3.0.0"),
         .package(url: "https://github.com/SwiftyJSON/SwiftyJSON.git", from: "4.0.0"),
+        .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.0.3"),
 //        .package(url: "https://github.com/vapor/console", from: "3.0.0"),
     ],
     targets: [
@@ -23,7 +24,7 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "ElasticsearchVapor",
-            dependencies: ["HTTP", "DatabaseKit", "SwiftyJSON"]),
+            dependencies: ["HTTP", "DatabaseKit", "SwiftyJSON", "SwiftProtobuf"]),
         .testTarget(
             name: "ElasticsearchVaporTests",
             dependencies: ["ElasticsearchVapor"]),

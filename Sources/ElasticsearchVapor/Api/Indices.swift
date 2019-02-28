@@ -33,4 +33,10 @@ extension ElasticsearchClient {
         let path : ESArray = [self.prefix(index)?.description]
         return request(method: .DELETE, path: path, query: query)
     }
+    
+    public func setting(index: ESIndexName, set key: String, to value: String) throws -> Future<HTTPResponse> {
+        let path : ESArray = [self.prefix(index)?.description, "_settings"]
+        let body = try encodeJsonBody(dictionary: ["index": [key: value]])
+        return request(method: .PUT, path: path, requestBody: body)
+    }
 }
