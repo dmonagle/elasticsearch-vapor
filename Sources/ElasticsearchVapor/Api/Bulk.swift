@@ -188,7 +188,8 @@ public class ESBulkProxy {
             bulkMeta._type = nil
         }
         
-        let bulkData = ESBulkActionRequest(action: action, meta: bulkMeta, data: data)
+        let requestData = action == .delete ? nil : data // Don't include data if the bulk action is delete
+        let bulkData = ESBulkActionRequest(action: action, meta: bulkMeta, data: requestData)
 
         return try append(data: bulkData.encodedPayload(with: jsonEncoder))
     }
@@ -219,7 +220,7 @@ extension ESBulkProxy : ESIndexer {
 
     public func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> EventLoopFuture<HTTPResponse?> {
         do {
-            return try append(.delete, index: index, type: type, data: nil)
+            return try append(.delete, index: index, type: type, id: id, data: nil)
         }
         catch {
             return client.future(nil)
