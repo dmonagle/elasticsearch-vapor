@@ -27,11 +27,11 @@ public struct ESBulkActionRequest {
     var action : ESBulkAction
     var meta: ESBulkMeta
     
-    var data: Data
+    var data: Data?
     
     func wrapDoc(with encoder: JSONEncoder) throws -> Data {
         var docData = Data("{\"doc\":".utf8)
-        docData.append(self.data)
+        if let data = data { docData.append(data) }
         docData.append(Data("}".utf8))
         return docData
     }
@@ -44,7 +44,8 @@ public struct ESBulkActionRequest {
         guard let actionData = actionDataString.data(using: .utf8) else { throw ESBulkError.jsonEncodingFailed(actionDataString) }
         payloadData.append(actionData)
         
-        let data : Data
+        let data : Data?
+        
         if action == .update {
             data = try wrapDoc(with: encoder)
         }
@@ -52,7 +53,7 @@ public struct ESBulkActionRequest {
             data = self.data
         }
         
-        payloadData.append(data)
+        if let data = data { payloadData.append(data) }
         if payloadData.last != ESBulkActionRequest.NewLine { payloadData.append(ESBulkActionRequest.NewLine)}
 
         return payloadData
@@ -172,7 +173,7 @@ public class ESBulkProxy {
         }
     }
 
-    public func append(_ action: ESBulkAction, index: ESIndexName, type: String, id: String? = nil, parentId: String? = nil, data: Data) throws -> Future<HTTPResponse?> {
+    public func append(_ action: ESBulkAction, index: ESIndexName, type: String, id: String? = nil, parentId: String? = nil, data: Data?) throws -> Future<HTTPResponse?> {
         var bulkMeta = ESBulkMeta(_index: client.prefix(index), _type: type, _id: id, _parent: parentId)
         
         // If the index is the same as the defaultIndex, remove it from the bulkData
@@ -188,7 +189,7 @@ public class ESBulkProxy {
         }
         
         let bulkData = ESBulkActionRequest(action: action, meta: bulkMeta, data: data)
-        
+
         return try append(data: bulkData.encodedPayload(with: jsonEncoder))
     }
     
@@ -217,6 +218,11 @@ extension ESBulkProxy : ESIndexer {
     }
 
     public func delete(index: ESIndexName, type: String, id: String?, query: ESDictionary) -> EventLoopFuture<HTTPResponse?> {
-        return client.delete(index: index, type: type, id: id, query: query)
+        do {
+            return try append(.delete, index: index, type: type, data: nil)
+        }
+        catch {
+            return client.future(nil)
+        }
     }
 }
