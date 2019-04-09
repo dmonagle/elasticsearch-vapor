@@ -42,7 +42,7 @@ extension ElasticsearchDatabase : LogSupporting {
 
 public extension DatabaseIdentifier {
     /// Default identifier for `ElasticsearchDatabase`.
-    public static var elasticsearch: DatabaseIdentifier<ElasticsearchDatabase> {
+    static var elasticsearch: DatabaseIdentifier<ElasticsearchDatabase> {
         return .init("elasticsearch")
     }
 }

@@ -67,14 +67,14 @@ public struct ESBulkMeta : Encodable {
 }
 
 public extension ElasticsearchClient {
-    public func bulk(index: ESIndexName? = nil, type: String? = nil, body: HTTPBody, query: ESDictionary = [:]) throws -> Future<HTTPResponse> {
+    func bulk(index: ESIndexName? = nil, type: String? = nil, body: HTTPBody, query: ESDictionary = [:]) throws -> Future<HTTPResponse> {
         let index = self.prefix(index)
         let path = [index?.description, type, "_bulk"]
         let httpResponse = self.request(method: .POST, path: path, query: query, requestBody: body)
         return httpResponse
     }
 
-    public func bulk<Model>(_ action : ESBulkAction, models: [Model], query: ESDictionary = [:]) throws -> Future<HTTPResponse> where Model : ESIndexable {
+    func bulk<Model>(_ action : ESBulkAction, models: [Model], query: ESDictionary = [:]) throws -> Future<HTTPResponse> where Model : ESIndexable {
         let index = self.prefix(Model.esIndex)
         let path = [index?.description, Model.esType, "_bulk"]
         

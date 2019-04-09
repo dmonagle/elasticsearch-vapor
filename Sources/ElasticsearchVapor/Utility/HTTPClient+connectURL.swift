@@ -38,7 +38,7 @@ public extension HTTPClient {
     ///     - worker: `Worker` to perform async work on.
     ///     - onError: Optional closure, which fires when a networking error is caught.
     /// - returns: A `Future` containing the connected `HTTPClient`.
-    public static func connect(
+    static func connect(
         url: URL,
         connectTimeout: TimeAmount = TimeAmount.seconds(10),
         on worker: Worker,

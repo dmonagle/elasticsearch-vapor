@@ -96,8 +96,8 @@ extension ESNode : CustomStringConvertible {
 
 extension ESNode : Hashable, Equatable {
     // Satisfy the Hashable Protocol
-    open var hashValue: Int {
-        return (url.absoluteString.hashValue)
+    open func hash(into hasher: inout Hasher) {
+        hasher.combine(url.absoluteString)
     }
     
     // Satisfy the Equatable Protocol

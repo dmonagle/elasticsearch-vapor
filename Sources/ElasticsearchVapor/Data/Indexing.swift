@@ -68,7 +68,7 @@ public protocol ESMappable : ESIndexable {
 }
 
 public extension ElasticsearchClient {
-    public func create(index mappable: ESMappable.Type, type: String? = nil, query: ESDictionary = [:], body: HTTPBody) throws -> Future<HTTPResponse> {
+    func create(index mappable: ESMappable.Type, type: String? = nil, query: ESDictionary = [:], body: HTTPBody) throws -> Future<HTTPResponse> {
         let body : [String: Any] = [
             "mappings": [
                 mappable.esType: [
@@ -80,7 +80,7 @@ public extension ElasticsearchClient {
         return create(index: mappable.esIndex, body: httpBody)
     }
     
-    public func ensure(index mappable: ESMappable.Type, type: String? = nil, query: ESDictionary = [:]) throws -> Future<Bool> {
+    func ensure(index mappable: ESMappable.Type, type: String? = nil, query: ESDictionary = [:]) throws -> Future<Bool> {
         let body : [String: Any] = [
             "mappings": [
                 mappable.esType: [
@@ -92,7 +92,7 @@ public extension ElasticsearchClient {
         return ensure(index: mappable.esIndex, query: query, body: httpBody)
     }
 
-    public func delete(index mappable: ESMappable.Type, type: String? = nil, query: ESDictionary = [:]) throws -> Future<HTTPResponse> {
+    func delete(index mappable: ESMappable.Type, type: String? = nil, query: ESDictionary = [:]) throws -> Future<HTTPResponse> {
         return delete(index: mappable.esIndex, query: query)
     }
 }
